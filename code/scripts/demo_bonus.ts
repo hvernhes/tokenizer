@@ -13,6 +13,9 @@ async function main() {
   const multisig = await ethers.getContractAt("Multisig42", MULTISIG_ADDRESS, owner1);
   const bonusToken = await ethers.getContractAt("Token42BEBonus", BONUS_TOKEN_ADDRESS);
 
+  console.log("Token42BEBonus sur Etherscan : https://sepolia.etherscan.io/address/" + BONUS_TOKEN_ADDRESS + "#code");
+  console.log("Multisig42 sur Etherscan     : https://sepolia.etherscan.io/address/" + MULTISIG_ADDRESS + "#code\n");
+
   function explainError(error: unknown): string {
     const data = (error as { data?: string }).data;
     if (data) {

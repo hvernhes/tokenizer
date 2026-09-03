@@ -31,6 +31,9 @@ choix de structure).
 1. Dans `code/`, créer un `.env` (à partir de `.env.example`) avec `SEPOLIA_RPC_URL` et
    `SEPOLIA_PRIVATE_KEY` (clé privée d'un wallet chargé en Sepolia ETH de test)
 2. `npx hardhat ignition deploy ignition/modules/Token42BE.ts --network sepolia`
+3. `npx hardhat verify --network sepolia --build-profile default <ADRESSE>` (le
+   `--build-profile default` est nécessaire : `verify` cible `production` par défaut, qui
+   ne correspond pas au profil utilisé pour ce déploiement — voir `hardhat.config.ts`)
 
 Chaque exécution crée un **nouveau** contrat, à une nouvelle adresse (le code déployé est
 immuable — redéployer n'écrase jamais le précédent, voir le contrat `Ownable`/`ERC20Capped`
@@ -70,6 +73,17 @@ Les trois étapes ont été faites en une seule commande (`code/ignition/modules
 2. Les adresses des 3 propriétaires et le seuil sont fixés dans le module lui-même
    (`OWNERS` et `REQUIRED`, en tête du fichier) — à modifier avant de relancer si besoin
    d'un jeu d'adresses différent.
+3. Vérification (une commande par contrat) :
+   ```
+   npx hardhat verify --network sepolia --build-profile default --contract contracts/Token42BE_bonus.sol:Token42BEBonus <ADRESSE_TOKEN42BEBONUS>
+   npx hardhat verify --network sepolia --build-profile default --constructor-args-path scripts/multisig42-constructor-args.ts <ADRESSE_MULTISIG42>
+   ```
+   `--contract` est nécessaire pour `Token42BEBonus` (bytecode quasi identique à
+   `Token42BE`, Etherscan ne peut pas deviner lequel des deux sans précision).
+   `--constructor-args-path` pointe vers un fichier qui exporte les arguments du
+   constructeur de `Multisig42` (un tableau `address[]` ne passe pas comme argument
+   positionnel classique en ligne de commande) — à adapter si les adresses des
+   propriétaires changent.
 
 **Important** : à partir de la transaction de `transferOwnership`, seul `Multisig42`
 peut appeler `mint`/`burn` sur `Token42BEBonus` — un appel direct depuis un wallet

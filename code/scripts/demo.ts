@@ -11,6 +11,8 @@ async function main() {
 
   const token = await ethers.getContractAt("Token42BE", TOKEN_ADDRESS, owner);
 
+  console.log("Contrat sur Etherscan : https://sepolia.etherscan.io/address/" + TOKEN_ADDRESS + "#code\n");
+
   function explainError(error: unknown): string {
     const data = (error as { data?: string }).data;
     if (data) {
