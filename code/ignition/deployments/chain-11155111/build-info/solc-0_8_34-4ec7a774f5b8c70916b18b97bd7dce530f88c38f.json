@@ -1,0 +1,49 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "solc-0_8_34-4ec7a774f5b8c70916b18b97bd7dce530f88c38f",
+  "solcVersion": "0.8.34",
+  "solcLongVersion": "0.8.34+commit.80d5c536",
+  "compilerType": "solc",
+  "toolVersions": {
+    "hardhat": "3.15.0"
+  },
+  "userSourceNameMap": {
+    "contracts/Multisig42.sol": "project/contracts/Multisig42.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "evmVersion": "osaka",
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode.linkReferences",
+            "evm.bytecode.object",
+            "evm.bytecode.opcodes",
+            "evm.bytecode.sourceMap",
+            "evm.deployedBytecode.immutableReferences",
+            "evm.deployedBytecode.linkReferences",
+            "evm.deployedBytecode.object",
+            "evm.deployedBytecode.opcodes",
+            "evm.deployedBytecode.sourceMap",
+            "evm.methodIdentifiers"
+          ]
+        }
+      },
+      "remappings": []
+    },
+    "sources": {
+      "project/contracts/Multisig42.sol": {
+        "content": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.34;\n\n/// @title Multisig42 — multisig M-sur-N générique\n/// @notice Toute action passe par : proposer, confirmer (jusqu'au seuil), exécuter.\n///         Générique par conception (adresse cible + valeur + données arbitraires) :\n///         ne connaît rien de Token42BEBonus à l'avance, peut appeler n'importe quel\n///         contrat une fois qu'il en devient owner (mint/burn/transferOwnership...).\ncontract Multisig42 {\n    event SubmitTransaction(uint256 indexed txId, address indexed proposer, address to, uint256 value, bytes data);\n    event ConfirmTransaction(uint256 indexed txId, address indexed owner);\n    event RevokeConfirmation(uint256 indexed txId, address indexed owner);\n    event ExecuteTransaction(uint256 indexed txId);\n\n    struct Transaction {\n        address to;\n        uint256 value;\n        bytes data;\n        bool executed;\n        uint256 confirmations;\n    }\n\n    address[] public owners;\n    mapping(address => bool) public isOwner;\n    uint256 public required;\n\n    Transaction[] public transactions;\n    mapping(uint256 => mapping(address => bool)) public hasConfirmed;\n\n    modifier onlyOwner() {\n        require(isOwner[msg.sender], \"not an owner\");\n        _;\n    }\n\n    constructor(address[] memory _owners, uint256 _required) {\n        require(_owners.length > 0, \"owners required\");\n        require(_required > 0 && _required <= _owners.length, \"invalid required\");\n\n        for (uint256 i = 0; i < _owners.length; i++) {\n            address owner = _owners[i];\n            require(owner != address(0), \"invalid owner\");\n            require(!isOwner[owner], \"duplicate owner\");\n            isOwner[owner] = true;\n            owners.push(owner);\n        }\n        required = _required;\n    }\n\n    function submitTransaction(address to, uint256 value, bytes calldata data) external onlyOwner returns (uint256 txId) {\n        txId = transactions.length;\n        transactions.push(Transaction({to: to, value: value, data: data, executed: false, confirmations: 0}));\n        emit SubmitTransaction(txId, msg.sender, to, value, data);\n    }\n\n    function confirmTransaction(uint256 txId) external onlyOwner {\n        Transaction storage transaction = transactions[txId];\n        require(!transaction.executed, \"already executed\");\n        require(!hasConfirmed[txId][msg.sender], \"already confirmed\");\n\n        hasConfirmed[txId][msg.sender] = true;\n        transaction.confirmations += 1;\n        emit ConfirmTransaction(txId, msg.sender);\n    }\n\n    function revokeConfirmation(uint256 txId) external onlyOwner {\n        Transaction storage transaction = transactions[txId];\n        require(!transaction.executed, \"already executed\");\n        require(hasConfirmed[txId][msg.sender], \"not confirmed\");\n\n        hasConfirmed[txId][msg.sender] = false;\n        transaction.confirmations -= 1;\n        emit RevokeConfirmation(txId, msg.sender);\n    }\n\n    function executeTransaction(uint256 txId) external onlyOwner {\n        Transaction storage transaction = transactions[txId];\n        require(!transaction.executed, \"already executed\");\n        require(transaction.confirmations >= required, \"not enough confirmations\");\n\n        transaction.executed = true;\n        (bool success, ) = transaction.to.call{value: transaction.value}(transaction.data);\n        require(success, \"call failed\");\n\n        emit ExecuteTransaction(txId);\n    }\n\n    function ownersCount() external view returns (uint256) {\n        return owners.length;\n    }\n}\n"
+      }
+    }
+  }
+}
